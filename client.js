@@ -204,13 +204,17 @@ async function receiveData({data}) {
                 updateMessageBox();
             }
             break;
+        case 'disconnected':
+            if (users[event.user] !== undefined)
+                delete users[event.user];
+            break;
         default:
             break;
     }
 }
 websocket.addEventListener("message", receiveData);
 
-function login() {
+function onLogin() {
     const event = {
         'type': 'login',
         'user': username,
@@ -219,7 +223,7 @@ function login() {
     };
     websocket.send(JSON.stringify(event));
 }
-websocket.addEventListener("open", login);
+websocket.addEventListener("open", onLogin);
 
 function typeText(event) {
     let key = event.keyCode;

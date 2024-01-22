@@ -8,12 +8,14 @@ USERS = {}
 
 async def handler(websocket):
     CONNECTIONS.add(websocket)
+    username = None
     async for message in websocket:
         message = json.loads(message)
         if message['type'] == 'msg':
             for connection in CONNECTIONS:
                 await connection.send(json.dumps(message))
         elif message['type'] == 'login':
+            username = message['user']
             USERS[message['user']] = {
                 'pk_n': message['pk_n'],
                 'pk_e': message['pk_e']
@@ -25,6 +27,13 @@ async def handler(websocket):
                 'pk_n': USERS[message['to']]['pk_n'],
                 'pk_e': USERS[message['to']]['pk_e']
             }))
+    CONNECTIONS.remove(websocket)
+    for connection in CONNECTIONS:
+        await connection.send(json.dumps({
+            'type': 'disconnected',
+            'user': username
+        }))
+    await websocket.close()
         
 
 async def main():
