@@ -9,9 +9,7 @@ USERS = {}
 async def handler(websocket):
     CONNECTIONS.add(websocket)
     async for message in websocket:
-        print("RECEIVED MESSAGE")
         message = json.loads(message)
-        print(message)
         if message['type'] == 'msg':
             for connection in CONNECTIONS:
                 await connection.send(json.dumps(message))

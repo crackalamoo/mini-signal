@@ -65,12 +65,10 @@ function updateMessageBox() {
         if (newBlock) {
             if (prev !== null)
                 newHTML += '</div>';
-            newHTML += '<div class="group">';
+            newHTML += `<div class="message-group ${message.from === username ? 'me' : ''}">`;
         }
-        console.log(prev, message.from, newBlock);
-        const messageHTML =
-        `<div class="message ${message.from === username ? 'me' : ''}">`
-            + `${message.from}: ${message.text}`
+        const messageHTML = `<div class="message">`
+            + message.text
             + `${message.verified ? '' : ' (UNVERIFIED)'}`
             + '</div>';
         newHTML += messageHTML;
@@ -78,6 +76,7 @@ function updateMessageBox() {
     });
     newHTML += '</div>';
     messageBox.innerHTML = newHTML;
+    messageBox.scrollTop = messageBox.scrollHeight;
 }
 
 function connectUser(user) {
@@ -103,7 +102,6 @@ function decryptMessage(enc) {
     for (let i = 0; i < enc.length; i++) {
         dec.push(expMod(enc[i], D, N));
     }
-    console.log(dec);
     let text = '';
     for (let i = 0; i < dec.length; i++) {
         try {
@@ -151,6 +149,12 @@ async function sendMessage(text) {
             'text': ciphertext,
             'signature': signature
         };
+        messages.push({
+            'from': username,
+            'to': recipient,
+            'text': text,
+            'verified': true
+        })
         websocket.send(JSON.stringify({
             'type': 'msg', ...message
         }));
@@ -162,13 +166,12 @@ async function receiveData({data}) {
     console.log(data);
     const event = JSON.parse(data);
     console.log(event);
-    console.log(event.type);
     switch (event.type) {
         case 'msg':
             if (users[event.from] === undefined) {
                 connectUser(event.from);
                 willReceive = event;
-            } else {
+            } else if (event.to === username) {
                 willReceive = null;
                 const verified = await verifyMessage(event.text, event.signature, event.from);
                 messages.push({
