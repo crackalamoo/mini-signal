@@ -1,4 +1,4 @@
-function randomPrime(range) {
+function randomPrime(minVal, range) {
     const isPrime = (num) => {
         for (let i = 2, s = Math.sqrt(num); i <= s; i++)
             if (num % i === 0) return false;
@@ -6,7 +6,7 @@ function randomPrime(range) {
     }
     let res = 1;
     while (!isPrime(res)) {
-        res = 256 + Math.floor(Math.random() * range);
+        res = minVal + Math.floor(Math.random() * range);
     }
     return res;
 }
@@ -28,12 +28,15 @@ function randomCoprime(coprimeTo, range) {
     return res;
 }
 
-const P = randomPrime(Math.pow(2, 12));
-const Q = randomPrime(Math.pow(2, 12));
+const P = randomPrime(Math.pow(2, 8), Math.pow(2, 50));
+const Q = randomPrime(Math.pow(2, 8), Math.pow(2, 50));
 const N = P * Q;
 const PHI = (P-1) * (Q-1);
 const E = randomCoprime(PHI, PHI);
 const D = modInv(E, PHI);
+if ((E*D) % PHI !== 1) {
+    throw new Error("Failed to generate RSA keys");
+}
 
 function expMod(base, exp, mod){
     if (exp == 0)
@@ -107,7 +110,7 @@ function decryptMessage(enc) {
         try {
             text += String.fromCodePoint(dec[i]);
         } catch (e) {
-            text += '񬣼';
+            text += '?';
         }
     }
     return text;
