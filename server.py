@@ -1,6 +1,7 @@
 import asyncio
 import websockets
 import json
+from websockets.exceptions import ConnectionClosedOK
 
 CONNECTIONS = set()
 USERS = {}
@@ -26,6 +27,7 @@ async def handler(websocket):
                 'pk_n': USERS[message['to']]['pk_n'],
                 'pk_e': USERS[message['to']]['pk_e']
             }))
+        
 
 async def main():
     async with websockets.serve(handler, '', 8000):

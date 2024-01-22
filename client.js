@@ -1,4 +1,4 @@
-function randomPrime(maxVal) {
+function randomPrime(range) {
     const isPrime = (num) => {
         for (let i = 2, s = Math.sqrt(num); i <= s; i++)
             if (num % i === 0) return false;
@@ -6,7 +6,7 @@ function randomPrime(maxVal) {
     }
     let res = 1;
     while (!isPrime(res)) {
-        res = 2 + Math.floor(Math.random() * maxVal);
+        res = 256 + Math.floor(Math.random() * range);
     }
     return res;
 }
@@ -20,10 +20,10 @@ function gcd(a, b) {
 function modInv(a, m) {
     return (gcd(a,m)[1] % m + m) % m;
 }
-function randomCoprime(coprimeTo, maxVal) {
+function randomCoprime(coprimeTo, range) {
     let res = coprimeTo;
     while (gcd(res, coprimeTo)[0] !== 1) {
-        res = 2 + Math.floor(Math.random() * maxVal);
+        res = 2 + Math.floor(Math.random() * range);
     }
     return res;
 }
@@ -58,15 +58,26 @@ const messageBox = document.getElementById('message-box');
 const inputBox = document.getElementById("input-box");
 
 function updateMessageBox() {
-    messageBox.innerHTML = '';
+    let prev = null;
+    let newHTML = '';
     messages.forEach((message) => {
+        const newBlock = prev !== message.from;
+        if (newBlock) {
+            if (prev !== null)
+                newHTML += '</div>';
+            newHTML += '<div class="group">';
+        }
+        console.log(prev, message.from, newBlock);
         const messageHTML =
-        `<span class="${message.to === username ? 'me' : ''}">`
+        `<div class="message ${message.from === username ? 'me' : ''}">`
             + `${message.from}: ${message.text}`
             + `${message.verified ? '' : ' (UNVERIFIED)'}`
-            + '</span><br>';
-        messageBox.innerHTML += messageHTML;
+            + '</div>';
+        newHTML += messageHTML;
+        prev = message.from;
     });
+    newHTML += '</div>';
+    messageBox.innerHTML = newHTML;
 }
 
 function connectUser(user) {
