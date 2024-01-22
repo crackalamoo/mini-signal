@@ -51,7 +51,7 @@ const websocket = new WebSocket("ws://localhost:8000/");
 const username = location.port;
 
 const messages = [];
-const users = {};
+const users = {username: {'pk_e': E, 'pk_n': N}};
 
 const messageBox = document.getElementById('message-box');
 const inputBox = document.getElementById("input-box");
@@ -61,7 +61,7 @@ function updateMessageBox() {
     messages.forEach((message) => {
         const messageHTML =
         `<span class="${message.to === username ? 'me' : ''}">`
-            + message.text
+            + `${message.from}: ${message.text}`
             + '</span><br>';
         messageBox.innerHTML += messageHTML;
     });
@@ -75,6 +75,34 @@ function connectUser(user) {
     websocket.send(JSON.stringify(event));
 }
 
+function encryptMessage(text, to) {
+    const enc = [];
+    for (let i = 0; i < text.length; i++) {
+        enc.push(text.codePointAt(i));
+    }
+    for (let i = 0; i < enc.length; i++) {
+        enc[i] = expMod(enc[i], users[to]['pk_e'], users[to]['pk_n']);
+    }
+    console.log(decryptMessage(enc));
+    return enc;
+}
+function decryptMessage(enc) {
+    const dec = []
+    for (let i = 0; i < enc.length; i++) {
+        dec.push(expMod(enc[i], D, N));
+    }
+    console.log(dec);
+    let text = '';
+    for (let i = 0; i < dec.length; i++) {
+        try {
+            text += String.fromCodePoint(dec[i]);
+        } catch (e) {
+            text += '񬣼';
+        }
+    }
+    return text;
+}
+
 let willSend = null;
 async function sendMessage(text) {
     const recipient = username === '3000' ? '3001' : '3000';
@@ -85,7 +113,7 @@ async function sendMessage(text) {
         const message = {
             'from': username,
             'to': recipient,
-            'text': text
+            'text': encryptMessage(text, recipient)
         };
         websocket.send(JSON.stringify({
             'type': 'msg', ...message
@@ -104,7 +132,7 @@ function receiveData({data}) {
             messages.push({
                 'from': event.from,
                 'to': event.to,
-                'text': event.text
+                'text': decryptMessage(event.text)
             });
             updateMessageBox();
             break;
