@@ -51,7 +51,8 @@ const websocket = new WebSocket("ws://localhost:8000/");
 const username = location.port;
 
 const messages = [];
-const users = {username: {'pk_e': E, 'pk_n': N}};
+const users = {};
+users[username] = {'pk_e': E, 'pk_n': N};
 
 const messageBox = document.getElementById('message-box');
 const inputBox = document.getElementById("input-box");
@@ -62,6 +63,7 @@ function updateMessageBox() {
         const messageHTML =
         `<span class="${message.to === username ? 'me' : ''}">`
             + `${message.from}: ${message.text}`
+            + `${message.verified ? '' : ' (UNVERIFIED)'}`
             + '</span><br>';
         messageBox.innerHTML += messageHTML;
     });
@@ -83,7 +85,6 @@ function encryptMessage(text, to) {
     for (let i = 0; i < enc.length; i++) {
         enc[i] = expMod(enc[i], users[to]['pk_e'], users[to]['pk_n']);
     }
-    console.log(decryptMessage(enc));
     return enc;
 }
 function decryptMessage(enc) {
@@ -102,18 +103,42 @@ function decryptMessage(enc) {
     }
     return text;
 }
+async function sha256(message, mod) {
+    const msgBuffer = new TextEncoder().encode(message);                    
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    let hash = 0;
+    for (let i = 0; i < hashArray.length; i++) {
+        hash += Math.pow(256, i) * hashArray[hashArray.length-i-1];
+        hash %= mod;
+    }
+    return hash;
+}
+async function signMessage(enc) {
+    const h = await sha256(enc, N);
+    return expMod(h, D, N);
+}
+async function verifyMessage(message, signature, from) {
+    const h = await sha256(message, users[from]['pk_n']);
+    const hp = expMod(signature, users[from]['pk_e'], users[from]['pk_n']);
+    return h === hp;
+}
 
 let willSend = null;
+let willReceive = null;
 async function sendMessage(text) {
     const recipient = username === '3000' ? '3001' : '3000';
     if (users[recipient] === undefined) {
         willSend = text;
         connectUser(recipient);
     } else {
+        const ciphertext = encryptMessage(text, recipient);
+        const signature = await signMessage(ciphertext);
         const message = {
             'from': username,
             'to': recipient,
-            'text': encryptMessage(text, recipient)
+            'text': ciphertext,
+            'signature': signature
         };
         websocket.send(JSON.stringify({
             'type': 'msg', ...message
@@ -122,19 +147,27 @@ async function sendMessage(text) {
     }
 }
 
-function receiveData({data}) {
+async function receiveData({data}) {
     console.log(data);
     const event = JSON.parse(data);
     console.log(event);
     console.log(event.type);
     switch (event.type) {
         case 'msg':
-            messages.push({
-                'from': event.from,
-                'to': event.to,
-                'text': decryptMessage(event.text)
-            });
-            updateMessageBox();
+            if (users[event.from] === undefined) {
+                connectUser(event.from);
+                willReceive = event;
+            } else {
+                willReceive = null;
+                const verified = await verifyMessage(event.text, event.signature, event.from);
+                messages.push({
+                    'from': event.from,
+                    'to': event.to,
+                    'text': decryptMessage(event.text),
+                    'verified': verified
+                });
+                updateMessageBox();
+            }
             break;
         case 'connected':
             users[event.to] = {
@@ -144,6 +177,17 @@ function receiveData({data}) {
             if (willSend !== null) {
                 sendMessage(willSend);
                 willSend = null;
+            }
+            if (willReceive !== null) {
+                const verified = await verifyMessage(willReceive.text, willReceive.signature, willReceive.from);
+                messages.push({
+                    'from': willReceive.from,
+                    'to': willReceive.to,
+                    'text': decryptMessage(willReceive.text),
+                    'verified': verified
+                });
+                willReceive = null;
+                updateMessageBox();
             }
             break;
         default:
