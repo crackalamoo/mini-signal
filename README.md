@@ -1,2 +1,3 @@
-# mini-signal
-A simplified implementation of the Signal protocol in JavaScript and Python
+# Mini Signal
+A simple local messaging app in JavaScript and Python.
+Very loosely based on the Signal protocol.
