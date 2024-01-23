@@ -3,6 +3,7 @@ const inputBox = document.getElementById("input-box");
 const messages = [];
 
 function updateMessageBox() {
+    // update the message box to show all messages that have been send and received
     if (messages.length === 0) {
         inputBox.placeholder = "Enter a message here...";
         return;

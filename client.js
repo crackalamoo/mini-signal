@@ -53,9 +53,10 @@ async function signMessage(enc) {
     return expMod(h, D, N);
 }
 async function verifyMessage(message) {
-    const user_data = users[message.from];
-    const h = await sha256(message.ciphertext, user_data['pk_n']);
-    const hp = expMod(message.signature, user_data['pk_e'], user_data['pk_n']);
+    const user_n = users[message.from]['pk_n'];
+    const user_e = users[message.from]['pk_e'];
+    const h = await sha256(message.ciphertext, user_n);
+    const hp = expMod(message.signature, user_e, user_n);
     return h === hp;
 }
 
