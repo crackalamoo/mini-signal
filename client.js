@@ -1,35 +1,5 @@
-function randomPrime(minVal, range) {
-    const isPrime = (num) => {
-        for (let i = 2, s = Math.sqrt(num); i <= s; i++)
-            if (num % i === 0) return false;
-        return num > 1;
-    }
-    let res = 1;
-    while (!isPrime(res)) {
-        res = minVal + Math.floor(Math.random() * range);
-    }
-    return res;
-}
-function gcd(a, b) {
-    if (b === 0) {
-        return [a, 1, 0];
-    }
-    const [g, x, y] = gcd(b, a % b);
-    return [g, y, x - Math.floor(a/b) * y];
-}
-function modInv(a, m) {
-    return (gcd(a,m)[1] % m + m) % m;
-}
-function randomCoprime(coprimeTo, range) {
-    let res = coprimeTo;
-    while (gcd(res, coprimeTo)[0] !== 1) {
-        res = 2 + Math.floor(Math.random() * range);
-    }
-    return res;
-}
-
-const P = randomPrime(Math.pow(2, 8), Math.pow(2, 50));
-const Q = randomPrime(Math.pow(2, 8), Math.pow(2, 50));
+const P = randomPrime(Math.pow(2, 8), Math.pow(2, 12));
+const Q = randomPrime(Math.pow(2, 8), Math.pow(2, 12));
 const N = P * Q;
 const PHI = (P-1) * (Q-1);
 const E = randomCoprime(PHI, PHI);
@@ -37,18 +7,6 @@ const D = modInv(E, PHI);
 if ((E*D) % PHI !== 1) {
     throw new Error("Failed to generate RSA keys");
 }
-
-function expMod(base, exp, mod){
-    if (exp == 0)
-        return 1;
-    if (exp % 2 == 0){
-        return Math.pow(expMod(base, (exp / 2), mod), 2) % mod;
-    } else {
-        return (base * expMod(base, (exp - 1), mod)) % mod;
-    }
-}
-
-const SK = 1 + Math.floor((Q-1)*Math.random());
 
 const websocket = new WebSocket("ws://localhost:8000/");
 const username = location.port;
@@ -130,9 +88,10 @@ async function signMessage(enc) {
     const h = await sha256(enc, N);
     return expMod(h, D, N);
 }
-async function verifyMessage(message, signature, from) {
-    const h = await sha256(message, users[from]['pk_n']);
-    const hp = expMod(signature, users[from]['pk_e'], users[from]['pk_n']);
+async function verifyMessage(message) {
+    const user_data = users[message.from];
+    const h = await sha256(message.ciphertext, user_data['pk_n']);
+    const hp = expMod(message.signature, user_data['pk_e'], user_data['pk_n']);
     return h === hp;
 }
 
@@ -147,14 +106,12 @@ async function sendMessage(text) {
         const ciphertext = encryptMessage(text, recipient);
         const signature = await signMessage(ciphertext);
         const message = {
-            'from': username,
-            'to': recipient,
-            'text': ciphertext,
+            'from': username, 'to': recipient,
+            'ciphertext': ciphertext,
             'signature': signature
         };
         messages.push({
-            'from': username,
-            'to': recipient,
+            'from': username, 'to': recipient,
             'text': text,
             'verified': true
         })
@@ -166,9 +123,7 @@ async function sendMessage(text) {
 }
 
 async function receiveData({data}) {
-    console.log(data);
     const event = JSON.parse(data);
-    console.log(event);
     switch (event.type) {
         case 'msg':
             if (users[event.from] === undefined) {
@@ -176,11 +131,11 @@ async function receiveData({data}) {
                 willReceive = event;
             } else if (event.to === username) {
                 willReceive = null;
-                const verified = await verifyMessage(event.text, event.signature, event.from);
+                const verified = await verifyMessage(event);
                 messages.push({
                     'from': event.from,
                     'to': event.to,
-                    'text': decryptMessage(event.text),
+                    'text': decryptMessage(event.ciphertext),
                     'verified': verified
                 });
                 updateMessageBox();
@@ -196,11 +151,11 @@ async function receiveData({data}) {
                 willSend = null;
             }
             if (willReceive !== null) {
-                const verified = await verifyMessage(willReceive.text, willReceive.signature, willReceive.from);
+                const verified = await verifyMessage(willReceive);
                 messages.push({
                     'from': willReceive.from,
                     'to': willReceive.to,
-                    'text': decryptMessage(willReceive.text),
+                    'text': decryptMessage(willReceive.ciphertext),
                     'verified': verified
                 });
                 willReceive = null;
@@ -230,7 +185,7 @@ websocket.addEventListener("open", onLogin);
 
 function typeText(event) {
     let key = event.keyCode;
-    if (key === 13) {
+    if (key === 13 && inputBox.value !== '') {
         event.preventDefault();
         sendMessage(inputBox.value);
         inputBox.value = '';
