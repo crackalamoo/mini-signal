@@ -29,3 +29,15 @@ function randomCoprime(coprimeTo, range) {
         res = 2 + Math.floor(Math.random() * range);
     return res;
 }
+
+async function sha256(message, mod) {
+    const msgBuffer = new TextEncoder().encode(message);                    
+    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
+    const hashArray = Array.from(new Uint8Array(hashBuffer));
+    let hash = 0;
+    for (let i = 0; i < hashArray.length; i++) {
+        hash += Math.pow(256, i) * hashArray[hashArray.length-i-1];
+        hash %= mod;
+    }
+    return hash;
+}

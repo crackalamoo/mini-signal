@@ -11,34 +11,8 @@ if ((E*D) % PHI !== 1) {
 const websocket = new WebSocket("ws://localhost:8000/");
 const username = location.port;
 
-const messages = [];
 const users = {};
 users[username] = {'pk_e': E, 'pk_n': N};
-
-const messageBox = document.getElementById('message-box');
-const inputBox = document.getElementById("input-box");
-
-function updateMessageBox() {
-    let prev = null;
-    let newHTML = '';
-    messages.forEach((message) => {
-        const newBlock = prev !== message.from;
-        if (newBlock) {
-            if (prev !== null)
-                newHTML += '</div>';
-            newHTML += `<div class="message-group ${message.from === username ? 'me' : ''}">`;
-        }
-        const messageHTML = `<div class="message">`
-            + message.text
-            + `${message.verified ? '' : ' (UNVERIFIED)'}`
-            + '</div>';
-        newHTML += messageHTML;
-        prev = message.from;
-    });
-    newHTML += '</div>';
-    messageBox.innerHTML = newHTML;
-    messageBox.scrollTop = messageBox.scrollHeight;
-}
 
 function connectUser(user) {
     const event = {
@@ -73,17 +47,7 @@ function decryptMessage(enc) {
     }
     return text;
 }
-async function sha256(message, mod) {
-    const msgBuffer = new TextEncoder().encode(message);                    
-    const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
-    const hashArray = Array.from(new Uint8Array(hashBuffer));
-    let hash = 0;
-    for (let i = 0; i < hashArray.length; i++) {
-        hash += Math.pow(256, i) * hashArray[hashArray.length-i-1];
-        hash %= mod;
-    }
-    return hash;
-}
+
 async function signMessage(enc) {
     const h = await sha256(enc, N);
     return expMod(h, D, N);
@@ -114,7 +78,7 @@ async function sendMessage(text) {
             'from': username, 'to': recipient,
             'text': text,
             'verified': true
-        })
+        });
         websocket.send(JSON.stringify({
             'type': 'msg', ...message
         }));
@@ -133,8 +97,7 @@ async function receiveData({data}) {
                 willReceive = null;
                 const verified = await verifyMessage(event);
                 messages.push({
-                    'from': event.from,
-                    'to': event.to,
+                    'from': event.from, 'to': event.to,
                     'text': decryptMessage(event.ciphertext),
                     'verified': verified
                 });
@@ -153,8 +116,7 @@ async function receiveData({data}) {
             if (willReceive !== null) {
                 const verified = await verifyMessage(willReceive);
                 messages.push({
-                    'from': willReceive.from,
-                    'to': willReceive.to,
+                    'from': willReceive.from, 'to': willReceive.to,
                     'text': decryptMessage(willReceive.ciphertext),
                     'verified': verified
                 });
@@ -182,13 +144,3 @@ function onLogin() {
     websocket.send(JSON.stringify(event));
 }
 websocket.addEventListener("open", onLogin);
-
-function typeText(event) {
-    let key = event.keyCode;
-    if (key === 13 && inputBox.value !== '') {
-        event.preventDefault();
-        sendMessage(inputBox.value);
-        inputBox.value = '';
-    }
-}
-inputBox.addEventListener('keydown', typeText);
