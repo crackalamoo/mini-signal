@@ -10,9 +10,9 @@ if ((E*D) % PHI !== 1) {
 
 const websocket = new WebSocket("ws://localhost:8000/");
 const username = location.port;
-
-const users = {};
-users[username] = {'pk_e': E, 'pk_n': N};
+users[username] = {
+    'pk_n': N, 'pk_e': E
+}
 
 function connectUser(user) {
     const event = {
@@ -63,7 +63,7 @@ async function verifyMessage(message) {
 let willSend = null;
 let willReceive = null;
 async function sendMessage(text) {
-    const recipient = username === '3000' ? '3001' : '3000';
+    const recipient = currentConvo;
     if (users[recipient] === undefined) {
         willSend = text;
         connectUser(recipient);
@@ -83,7 +83,7 @@ async function sendMessage(text) {
         websocket.send(JSON.stringify({
             'type': 'msg', ...message
         }));
-        updateMessageBox();
+        updateMessageBox(currentConvo);
     }
 }
 
@@ -102,7 +102,7 @@ async function receiveData({data}) {
                     'text': decryptMessage(event.ciphertext),
                     'verified': verified
                 });
-                updateMessageBox();
+                updateMessageBox(currentConvo);
             }
             break;
         case 'connected':
@@ -110,6 +110,7 @@ async function receiveData({data}) {
                 'pk_n': event.pk_n,
                 'pk_e': event.pk_e
             };
+            currentConvo = event.to;
             if (willSend !== null) {
                 sendMessage(willSend);
                 willSend = null;
@@ -122,12 +123,15 @@ async function receiveData({data}) {
                     'verified': verified
                 });
                 willReceive = null;
-                updateMessageBox();
+                updateMessageBox(currentConvo);
             }
+            updateContactsBox();
             break;
         case 'disconnected':
-            if (users[event.user] !== undefined)
+            if (users[event.user] !== undefined) {
                 delete users[event.user];
+                updateContactsBox();
+            }
             break;
         default:
             break;

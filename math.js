@@ -1,9 +1,9 @@
 function expMod(base, exp, mod) {
-    // return base^exp mod (`mod`)
+    // return base^exp mod `mod`
     if (exp == 0)
         return 1;
     if (exp % 2 == 0)
-        return Math.pow(expMod(base, (exp / 2), mod), 2) % mod;
+        return Math.pow(expMod(base, (exp / 2), mod) % mod, 2) % mod;
     return (base * expMod(base, (exp - 1), mod)) % mod;
 }
 function randomPrime(minVal, range) {
@@ -28,16 +28,16 @@ function gcd(a, b) {
 }
 const modInv = (a, m) => ((gcd(a,m)[1] % m + m) % m); // modular multiplicative inverse
 
-function randomCoprime(coprimeTo, range) {
-    // returns a random number in the range [2, 2+range) that is coprime to `coprimeTo`
+function randomCoprime(coprimeTo, maxVal) {
+    // return a random number in the range [2, maxVal) that is coprime to `coprimeTo`
     let res = coprimeTo;
     while (gcd(res, coprimeTo)[0] !== 1)
-        res = 2 + Math.floor(Math.random() * range);
+        res = 2 + Math.floor(Math.random() * (maxVal-2));
     return res;
 }
 
 async function sha256(message, mod) {
-    // returns the SHA256 hash of `message` as a number mod `mod`
+    // return the SHA256 hash of `message` as a number mod `mod`
     const msgBuffer = new TextEncoder().encode(message);                    
     const hashBuffer = await crypto.subtle.digest('SHA-256', msgBuffer);
     const hashArray = Array.from(new Uint8Array(hashBuffer));
