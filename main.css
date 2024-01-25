@@ -75,13 +75,18 @@ body {
     display: flex;
 }
 #contacts-box .contact {
-    border-radius: 50%;
+    border-radius: 25px;
     text-align: center;
     vertical-align: middle;
     background-color: #CCC;
     height: 50px;
-    width: 50px;
+    min-width: 50px;
+    padding-top: 12px;
+    padding-left: 6px;
+    padding-right: 6px;
+    margin: 0 3px;
     cursor: pointer;
+    box-sizing: border-box;
 }
 #contacts-box .contact:hover {
     background-color: #33F;

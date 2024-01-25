@@ -1,15 +1,24 @@
 const P = randomPrime(Math.pow(2, 8), Math.pow(2, 12));
 const Q = randomPrime(Math.pow(2, 8), Math.pow(2, 12));
-const N = P * Q;
 const PHI = (P-1) * (Q-1);
-const E = randomCoprime(PHI, PHI);
-const D = modInv(E, PHI);
+const N = localStorage.getItem('pk_n') || P * Q;
+const E = localStorage.getItem('pk_e') || randomCoprime(PHI, PHI);
+const D = localStorage.getItem('pk_d') || modInv(E, PHI);
 if ((E*D) % PHI !== 1) {
     throw new Error("Failed to generate RSA keys");
 }
 
+const SERVER_E = 8085277;
+const SERVER_N = 10491863;
+
 const websocket = new WebSocket("ws://localhost:8000/");
-const username = location.port;
+
+const username = localStorage.getItem('username') || prompt("Enter your username:","") || location.port;
+localStorage.setItem('username', username);
+localStorage.setItem('pk_n', N);
+localStorage.setItem('pk_e', E);
+localStorage.setItem('pk_d', D);
+
 users[username] = {
     'pk_n': N, 'pk_e': E
 }
