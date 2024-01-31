@@ -10,7 +10,6 @@ function updateMessageBox(user=null) {
     const fmessages = messages.filter((message) => (user === null
         || (message.from === username && message.to === user)
         || (message.from === user && message.to === username)));
-    console.log(fmessages);
     if (fmessages.length === 0) {
         inputBox.placeholder = "Enter a message here...";
         messageBox.innerHTML = '';
@@ -19,7 +18,6 @@ function updateMessageBox(user=null) {
     let prev = null;
     let newHTML = '';
     fmessages.forEach((message) => {
-        console.log(message);
         const newBlock = prev !== message.from;
         if (newBlock) {
             if (prev !== null)

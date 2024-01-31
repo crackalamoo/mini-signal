@@ -4,9 +4,6 @@ const PHI = (P-1) * (Q-1);
 const N = localStorage.getItem('pk_n') || P * Q;
 const E = localStorage.getItem('pk_e') || randomCoprime(PHI, PHI);
 const D = localStorage.getItem('pk_d') || modInv(E, PHI);
-if ((E*D) % PHI !== 1) {
-    throw new Error("Failed to generate RSA keys");
-}
 
 const SERVER_E = 8085277;
 const SERVER_N = 10491863;
@@ -119,7 +116,7 @@ async function receiveData({data}) {
                 'pk_n': event.pk_n,
                 'pk_e': event.pk_e
             };
-            currentConvo = event.to;
+            setConvo(event.to);
             if (willSend !== null) {
                 sendMessage(willSend);
                 willSend = null;
