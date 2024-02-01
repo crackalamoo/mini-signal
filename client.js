@@ -5,9 +5,6 @@ const N = localStorage.getItem('pk_n') || P * Q;
 const E = localStorage.getItem('pk_e') || randomCoprime(PHI, PHI);
 const D = localStorage.getItem('pk_d') || modInv(E, PHI);
 
-const SERVER_E = 8085277;
-const SERVER_N = 10491863;
-
 const websocket = new WebSocket("ws://localhost:8000/");
 
 const username = localStorage.getItem('username') || prompt("Enter your username:","") || location.port;
@@ -97,41 +94,45 @@ async function receiveData({data}) {
     const event = JSON.parse(data);
     switch (event.type) {
         case 'msg':
-            if (users[event.from] === undefined) {
-                connectUser(event.from);
-                willReceive = event;
-            } else if (event.to === username) {
-                willReceive = null;
-                const verified = await verifyMessage(event);
-                messages.push({
-                    'from': event.from, 'to': event.to,
-                    'text': decryptMessage(event.ciphertext),
-                    'verified': verified
-                });
-                updateMessageBox(currentConvo);
+            if (event.to === username) {
+                if (users[event.from] === undefined) {
+                    connectUser(event.from);
+                    willReceive = event;
+                } else {
+                    willReceive = null;
+                    const verified = await verifyMessage(event);
+                    messages.push({
+                        'from': event.from, 'to': event.to,
+                        'text': decryptMessage(event.ciphertext),
+                        'verified': verified
+                    });
+                    updateMessageBox(currentConvo);
+                }
             }
             break;
         case 'connected':
-            users[event.to] = {
-                'pk_n': event.pk_n,
-                'pk_e': event.pk_e
-            };
-            setConvo(event.to);
-            if (willSend !== null) {
-                sendMessage(willSend);
-                willSend = null;
+            if (event.from === username) {
+                users[event.to] = {
+                    'pk_n': event.pk_n,
+                    'pk_e': event.pk_e
+                };
+                setConvo(event.to);
+                if (willSend !== null) {
+                    sendMessage(willSend);
+                    willSend = null;
+                }
+                if (willReceive !== null) {
+                    const verified = await verifyMessage(willReceive);
+                    messages.push({
+                        'from': willReceive.from, 'to': willReceive.to,
+                        'text': decryptMessage(willReceive.ciphertext),
+                        'verified': verified
+                    });
+                    willReceive = null;
+                    updateMessageBox(currentConvo);
+                }
+                updateContactsBox();
             }
-            if (willReceive !== null) {
-                const verified = await verifyMessage(willReceive);
-                messages.push({
-                    'from': willReceive.from, 'to': willReceive.to,
-                    'text': decryptMessage(willReceive.ciphertext),
-                    'verified': verified
-                });
-                willReceive = null;
-                updateMessageBox(currentConvo);
-            }
-            updateContactsBox();
             break;
         case 'disconnected':
             if (users[event.user] !== undefined) {

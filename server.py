@@ -24,6 +24,7 @@ async def handler(websocket):
                 await websocket.send(json.dumps({
                     'type': 'connected',
                     'to': message['to'],
+                    'from': username,
                     'pk_n': USERS[message['to']]['pk_n'],
                     'pk_e': USERS[message['to']]['pk_e']
                 }))
