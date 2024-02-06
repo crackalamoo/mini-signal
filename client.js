@@ -26,19 +26,23 @@ function connectUser(user) {
 }
 
 function encryptMessage(text, to) {
+    const iv = Math.floor(Math.random() * Math.pow(2, 16));
     const enc = [];
+    let v = iv;
     for (let i = 0; i < text.length; i++) {
-        enc.push(text.codePointAt(i));
+        let plain = text.codePointAt(i);
+        let cipher = expMod(plain ^ v, users[to]['pk_e'], users[to]['pk_n']);
+        enc.push(cipher);
+        v = cipher + 0;
     }
-    for (let i = 0; i < enc.length; i++) {
-        enc[i] = expMod(enc[i], users[to]['pk_e'], users[to]['pk_n']);
-    }
-    return enc;
+    return new Array(enc, iv);
 }
-function decryptMessage(enc) {
-    const dec = []
+function decryptMessage(enc, iv) {
+    const dec = [];
+    let v = iv;
     for (let i = 0; i < enc.length; i++) {
-        dec.push(expMod(enc[i], D, N));
+        dec.push(expMod(enc[i], D, N) ^ v);
+        v = enc[i] + 0;
     }
     let text = '';
     for (let i = 0; i < dec.length; i++) {
@@ -71,11 +75,14 @@ async function sendMessage(text) {
         willSend = text;
         connectUser(recipient);
     } else {
-        const ciphertext = encryptMessage(text, recipient);
+        const enc_iv = encryptMessage(text, recipient);
+        const ciphertext = enc_iv[0];
+        const iv = enc_iv[1];
         const signature = await signMessage(ciphertext);
         const message = {
             'from': username, 'to': recipient,
             'ciphertext': ciphertext,
+            'iv': iv,
             'signature': signature
         };
         messages.push({
@@ -103,7 +110,7 @@ async function receiveData({data}) {
                     const verified = await verifyMessage(event);
                     messages.push({
                         'from': event.from, 'to': event.to,
-                        'text': decryptMessage(event.ciphertext),
+                        'text': decryptMessage(event.ciphertext, event.iv),
                         'verified': verified
                     });
                     updateMessageBox(currentConvo);
@@ -125,7 +132,7 @@ async function receiveData({data}) {
                     const verified = await verifyMessage(willReceive);
                     messages.push({
                         'from': willReceive.from, 'to': willReceive.to,
-                        'text': decryptMessage(willReceive.ciphertext),
+                        'text': decryptMessage(willReceive.ciphertext, willReceive.iv),
                         'verified': verified
                     });
                     willReceive = null;
