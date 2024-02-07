@@ -40,6 +40,9 @@ const setConvo = (user) => {
     updateMessageBox(user);
     updateContactsBox();
 }
+function displayUsername() {
+    document.getElementById("username").text = username;
+}
 
 function updateContactsBox() {
     if (contactsBox === null)
