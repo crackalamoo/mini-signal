@@ -41,7 +41,7 @@ const setConvo = (user) => {
     updateContactsBox();
 }
 function displayUsername() {
-    document.getElementById("username").text = username;
+    document.getElementById("username").innerText = username;
 }
 
 function updateContactsBox() {

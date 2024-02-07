@@ -95,3 +95,7 @@ body {
     background-color: #77D;
     cursor: default;
 }
+#username {
+    text-align: right;
+    padding: min(max(3%, 10px), 20px);
+}
