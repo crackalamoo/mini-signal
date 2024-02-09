@@ -33,7 +33,7 @@ function encryptMessage(text, to) {
         let plain = text.codePointAt(i);
         let cipher = expMod(plain ^ v, users[to]['pk_e'], users[to]['pk_n']);
         enc.push(cipher);
-        v = cipher + 0;
+        v = cipher;
     }
     return new Array(enc, iv);
 }
@@ -43,7 +43,7 @@ function decryptMessage(enc, iv) {
     for (let i = 0; i < enc.length; i++) {
         let plain = expMod(enc[i], D, N) ^ v;
         text += String.fromCodePoint(plain);
-        v = enc[i] + 0;
+        v = enc[i];
     }
     return text;
 }
