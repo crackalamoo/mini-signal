@@ -38,19 +38,12 @@ function encryptMessage(text, to) {
     return new Array(enc, iv);
 }
 function decryptMessage(enc, iv) {
-    const dec = [];
+    let text = '';
     let v = iv;
     for (let i = 0; i < enc.length; i++) {
-        dec.push(expMod(enc[i], D, N) ^ v);
+        let plain = expMod(enc[i], D, N) ^ v;
+        text += String.fromCodePoint(plain);
         v = enc[i] + 0;
-    }
-    let text = '';
-    for (let i = 0; i < dec.length; i++) {
-        try {
-            text += String.fromCodePoint(dec[i]);
-        } catch (e) {
-            text += '?';
-        }
     }
     return text;
 }
